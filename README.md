@@ -1,2 +1,1 @@
-# Arduino-uno-games
-Game projects
+# Arduino Uno Game Projects
