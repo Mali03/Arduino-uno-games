@@ -10,6 +10,9 @@ This is a simple **Snake Game** controlled with a joystick and enhanced with a b
 - The snake's speed increases after eating food, making the game more difficult.
 ### Limitations
 - Scores can be displayed using a **5161AS** (7-segment display), but the Arduino Uno runs out of available pins in this project.
+### Requirements
+- Hardware: 8x8 Matrix (1088AS), jumper cables, breadboard, resistors, passive buzzer, joystick.
+- Software: Arduino IDE (2.3.4).
 
 ## 2) 🧠 Simon Says
 This is a **Simon Says** memory game built using an Arduino Uno. The game tests your ability to remember and repeat sequences of LED flashes with buttons.
@@ -20,3 +23,6 @@ This is a **Simon Says** memory game built using an Arduino Uno. The game tests 
 - The game continues until you make a mistake and it starts from the beginning.
 ### Possible developments
 - Different sounds could be added for each button press, associating them with the corresponding lights.
+### Requirements
+- Hardware: 4 push buttons, 4 leds, jumper cables, breadboard, resistors, passive buzzer.
+- Software: Arduino IDE (2.3.4).
