@@ -26,3 +26,16 @@ This is a **Simon Says** memory game built using an Arduino Uno. The game tests 
 ### Requirements
 - **Hardware**: 4 push buttons, 4 leds, jumper cables, breadboard, resistors, passive buzzer.
 - **Software**: Arduino IDE (2.3.4).
+
+## 3) 🚦 Green Light, Red Light
+This is a Green Light, Red Light game built using an Arduino Uno. The game tests your reaction and timing skills with a button and LED system, enhanced with sound effects with buzzer.
+### How to Play?
+- When the green light is on (music is playing), hold the button to earn points.
+- When the red light is on (no music), pressing the button results in losing the game.
+- The game continues until you make a mistake.
+### Possible developments
+- Could be added a timer to finish the game within a specific time limit.
+- The song's speed can randomly increase, preventing players from memorizing a fixed rhythm.
+## Requirements
+- **Hardware**: 4-digit 7-segment display (5461BS-1), LED (red & green), push button, jumper cables, breadboard, resistors, passive buzzer.
+- **Software**: Arduino IDE (2.3.4).
