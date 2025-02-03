@@ -5,22 +5,28 @@ int D1 = 12, D2 = 9, D3 = 8, D4 = 6;
 int buttonPin = A0, buzzerPin = A3;
 int redLed = A2, greenLed = A1;
 
-// cathod display: high -> light on | anot display: low -> light on
-
-int melody[] = { 392, 440, 494, 392, 523, 494, 440, 392, 440 };
-int noteDurations[] = { 400, 300, 500, 400, 600, 500, 300, 400, 700 };
-
 unsigned long previousMillis = 0;
 const long interval = 500;
 
-int digitValues[4] = { 0, 0, 0, 0 };
-int total;
+bool isRedLight = false;
+int score = 0;
+bool gameOver = false;
+bool isSongPlaying = false;
+int currentNote = 0;
+bool gameWon = false;
 
-int buttonInfo;
+unsigned long songStartTime = 0;
+unsigned long redLightStartTime = 0;
+unsigned long redLightDuration = 0;
+
+int digitValues[4] = { 0, 0, 0, 0 };
 
 void setup() {
   pinMode(buttonPin, INPUT);
-
+  
+  pinMode(redLed, OUTPUT);
+  pinMode(greenLed, OUTPUT);
+  
   pinMode(pinA, OUTPUT);
   pinMode(pinB, OUTPUT);
   pinMode(pinC, OUTPUT);
@@ -28,101 +34,181 @@ void setup() {
   pinMode(pinE, OUTPUT);
   pinMode(pinF, OUTPUT);
   pinMode(pinG, OUTPUT);
-
+  
   pinMode(D1, OUTPUT);
   pinMode(D2, OUTPUT);
   pinMode(D3, OUTPUT);
   pinMode(D4, OUTPUT);
 
-  pinMode(redLed, OUTPUT);
-  pinMode(greenLed, OUTPUT);
+  // I use tone() function so don't need to write pinMode(buzzerPin, OUTPUT)
+
+  digitalWrite(greenLed, HIGH);
+  randomSeed(analogRead(0));
 }
 
 void loop() {
-  buttonInfo = digitalRead(buttonPin);
+  if (gameWon || gameOver) {
+    updateDisplay();
+    return;
+  }
 
-  if (total == 10 || total == 23 || total == 30 || total == 39 || total == 45 || total == 52 || total == 59 || total == 65 || total == 70 || total == 80 || total == 92 || total == 98) {
-    playSong();
-  } else {
-    if (buttonInfo == HIGH) {
-      unsigned long currentMillis = millis();
+  checkRedLightTimeout();
+  updateSongAndLights();
+  handleButtonPress();
+  updateDisplay();
+}
 
-      if (currentMillis - previousMillis >= interval) {
-
-        previousMillis = currentMillis;
-
-        digitValues[3]++;
-        if (digitValues[3] > 9) {
-          digitValues[3] = 0;
-          digitValues[2]++;
-          if (digitValues[2] > 9) {
-            digitValues[2] = 0;
-            digitValues[1]++;
-            if (digitValues[1] > 9) {
-              digitValues[1] = 0;
-              digitValues[0]++;
-              if (digitValues[0] > 9) {
-                digitValues[0] = 0;
-              }
-            }
-          }
-        }
-      }
+void checkRedLightTimeout() {
+  if (isRedLight && !isSongPlaying) {
+    if (millis() - redLightStartTime >= redLightDuration) {
+      isRedLight = false;
+      digitalWrite(redLed, LOW);
+      digitalWrite(greenLed, HIGH);
+      isSongPlaying = false;
     }
-
-    for (int i = 0; i < 4; i++) {
-      showDigit(i, digitValues[i]);
-      delay(1);
-    }
-
-    total = digitValues[1] * 100 + digitValues[2] * 10 + digitValues[3];
   }
 }
 
-void playSong() {
-  digitalWrite(redLed, HIGH);
-
-  for (int i = 0; i < 9; i++) {
-    tone(buzzerPin, melody[i], noteDurations[i]);
-    delay(noteDurations[i] * 1.2);  // Nota çalma süresi
-    noTone(buzzerPin);
+void updateSongAndLights() {
+  if (!isSongPlaying && !isRedLight) {
+    startSong();
   }
+  
+  if (isSongPlaying) {
+    playSongStep();
+  }
+}
 
+void handleButtonPress() {
+  int buttonState = digitalRead(buttonPin);
+  
+  if (isRedLight && buttonState == HIGH) {
+    gameOver = true;
+    resetGame();
+    return;
+  }
+  
+  if (!isRedLight && buttonState == HIGH && !gameWon) {
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval) {
+      previousMillis = currentMillis;
+      incrementScore();
+    }
+  }
+}
+
+int melody[] = { 392, 440, 494, 392, 523, 494, 440, 392, 440 };
+int noteDurations[] = { 400, 300, 500, 400, 600, 500, 300, 400, 700 };
+
+void startSong() {
+  isSongPlaying = true;
+  currentNote = 0;
+  songStartTime = millis();
+  digitalWrite(greenLed, HIGH);
   digitalWrite(redLed, LOW);
 }
 
-void playWinMelody() {
-  int winMelody[] = { 262, 330, 392, 503, 523 };
-  int durations[] = { 150, 150, 150, 400, 700 };
-
-  for (int i = 0; i < 3; i++) {
-    tone(buzzerPin, winMelody[i], durations[i]);
-    delay(durations[i] * 1.3);
+void playSongStep() {
+  if (currentNote >= 9) {
+    isSongPlaying = false;
     noTone(buzzerPin);
+    isRedLight = true;
+    digitalWrite(greenLed, LOW);
+    digitalWrite(redLed, HIGH);
+    redLightStartTime = millis();
+    redLightDuration = random(2000, 5000);
+    return;
   }
 
-  tone(buzzerPin, winMelody[3], durations[3]);
-  delay(durations[3] * 1.3);
-  noTone(buzzerPin);
+  unsigned long currentTime = millis();
+  unsigned long noteDuration = noteDurations[currentNote];
+  
+  if (currentTime - songStartTime >= noteDuration * 1.2) {
+    currentNote++;
+    songStartTime = currentTime;
+    if (currentNote < 9) {
+      tone(buzzerPin, melody[currentNote], noteDurations[currentNote]);
+    }
+  }
+}
 
-  delay(150);
+void incrementScore() {
+  score++;
+  digitValues[3] = score % 10;
+  digitValues[2] = (score / 10) % 10;
+  digitValues[1] = (score / 100) % 10;
+  digitValues[0] = (score / 1000) % 10;
+  
+  if (score >= 100) {
+    gameWon = true;
+    digitalWrite(redLed, LOW);
+    digitalWrite(greenLed, LOW);
+    noTone(buzzerPin);
+    playVictoryMelody();
+  }
+}
 
-  tone(buzzerPin, winMelody[4], durations[4]);
-  delay(durations[4] * 1.3);
+void playVictoryMelody() {
+  int victoryMelody[] = {
+    523, 523, 523, 523, 784,
+    698, 698, 698,
+    880, 880, 880,
+    784
+  };
+  
+  int victoryDurations[] = {
+    200, 200, 200, 200, 400,
+    200, 200, 400,
+    200, 200, 400,
+    600
+  };
+  
+  for (int i = 0; i < 12; i++) {
+    tone(buzzerPin, victoryMelody[i], victoryDurations[i]);
+    delay(victoryDurations[i] * 1.3);
+    noTone(buzzerPin);
+  }
+}
+
+void resetGame() {
+  score = 0;
+  for (int i = 0; i < 4; i++) {
+    digitValues[i] = -1;
+  }
+  digitalWrite(redLed, LOW);
+  digitalWrite(greenLed, LOW);
+  isRedLight = false;
+  isSongPlaying = false;
+  currentNote = 0;
+  gameWon = false;
+  playGameOverSound();
+}
+
+void playGameOverSound() {
+  for (int i = 1000; i > 100; i -= 50) {
+    tone(buzzerPin, i, 50);
+    delay(20);
+  }
   noTone(buzzerPin);
 }
 
+void updateDisplay() {
+  for (int i = 0; i < 4; i++) {
+    showDigit(i, digitValues[i]);
+    delay(1);
+  }
+}
 
 void showDigit(int digit, int value) {
   turnOffAllDigits();
-
+  
   switch (digit) {
     case 0: digitalWrite(D1, HIGH); break;
     case 1: digitalWrite(D2, HIGH); break;
     case 2: digitalWrite(D3, HIGH); break;
     case 3: digitalWrite(D4, HIGH); break;
   }
-
+  
   displayNumber(value);
 }
 
@@ -134,6 +220,11 @@ void turnOffAllDigits() {
 }
 
 void displayNumber(int num) {
+  if (num == -1) {
+    displayDash();
+    return;
+  }
+  
   switch (num) {
     case 0: zero(); break;
     case 1: one(); break;
@@ -149,7 +240,16 @@ void displayNumber(int num) {
   }
 }
 
-//functions representing numbers 0-9
+void displayDash() {
+  digitalWrite(pinA, HIGH);
+  digitalWrite(pinB, HIGH);
+  digitalWrite(pinC, HIGH);
+  digitalWrite(pinD, HIGH);
+  digitalWrite(pinE, HIGH);
+  digitalWrite(pinF, HIGH);
+  digitalWrite(pinG, LOW);
+}
+
 void zero() {
   digitalWrite(pinA, LOW);
   digitalWrite(pinB, LOW);
@@ -258,11 +358,4 @@ void turnOffAllSegments() {
   digitalWrite(pinE, LOW);
   digitalWrite(pinF, LOW);
   digitalWrite(pinG, LOW);
-}
-
-void all4Digits() {
-  digitalWrite(D1, HIGH);
-  digitalWrite(D2, HIGH);
-  digitalWrite(D3, HIGH);
-  digitalWrite(D4, HIGH);
 }
